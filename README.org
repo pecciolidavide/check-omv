@@ -7,9 +7,9 @@ Questo repository ospita una soluzione leggera e statica per monitorare lo stato
 
 * Architettura del Sistema
 L'infrastruttura si compone di tre elementi principali:
-1. **OpenMediaVault (Server)**: Esegue un'attività pianificata ogni minuto che invia un segnale HTTP (ping via cURL) all'endpoint di controllo.
-2. **Healthchecks.io (Servizio di Monitoraggio)**: Riceve i ping dal server. Se non riceve aggiornamenti entro la tolleranza stabilita, contrassegna lo stato del server come "down" e aggiorna un badge JSON pubblico.
-3. **GitHub Pages (Interfaccia Utente)**: Una pagina HTML statica che interroga asincronamente il badge JSON di Healthchecks.io tramite JavaScript (Fetch API) e aggiorna l'interfaccia utente in tempo reale senza ricaricare la pagina.
+1. *OpenMediaVault (Server)**: Esegue un'attività pianificata ogni minuto che invia un segnale HTTP (ping via cURL) all'endpoint di controllo.
+2. *Healthchecks.io (Servizio di Monitoraggio)**: Riceve i ping dal server. Se non riceve aggiornamenti entro la tolleranza stabilita, contrassegna lo stato del server come "down" e aggiorna un badge JSON pubblico.
+3. *GitHub Pages (Interfaccia Utente)**: Una pagina HTML statica che interroga asincronamente il badge JSON di Healthchecks.io tramite JavaScript (Fetch API) e aggiorna l'interfaccia utente in tempo reale senza ricaricare la pagina.
 
 * Configurazione del Sistema
 
@@ -17,10 +17,10 @@ L'infrastruttura si compone di tre elementi principali:
 1. Creare un account su [[https://healthchecks.io/][Healthchecks.io]].
 2. Creare un nuovo controllo (Check).
 3. Impostare i seguenti parametri temporali:
-   - **Period (Periodo)**: 1 minuto
-   - **Grace (Tolleranza)**: 2 o 3 minuti (per prevenire falsi positivi dovuti a latenze di rete).
+   - *Period (Periodo)**: 1 minuto
+   - *Grace (Tolleranza)**: 2 o 3 minuti (per prevenire falsi positivi dovuti a latenze di rete).
 4. Copiare l'URL di ping fornito (es. =https://hc-ping.com/tuo-uuid-segreto=).
-5. Nella sezione "Badges" del progetto, abilitare l'accesso pubblico e copiare l'URL del formato **JSON**.
+5. Nella sezione "Badges" del progetto, abilitare l'accesso pubblico e copiare l'URL del formato *JSON*.
 
 ** 2. Configurazione su OpenMediaVault
 Invece di utilizzare direttamente il crontab di sistema, si raccomanda l'uso dell'interfaccia web di OMV per garantire la persistenza delle impostazioni durante gli aggiornamenti del firmware.
@@ -28,20 +28,97 @@ Invece di utilizzare direttamente il crontab di sistema, si raccomanda l'uso del
 1. Accedere al pannello di controllo web di OMV.
 2. Navigare su *Sistema* > *Attività pianificate*.
 3. Cliccare su *Aggiungi* (+) e configurare come segue:
-   - **Abilita**: Attivo
-   - **Utente**: =root=
-   - **Comando**:
+   - *Abilita*: Attivo
+   - *Utente*: =root=
+   - *Comando*:
      #+BEGIN_SRC bash
      curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/tuo-uuid-segreto
      #+END_SRC
-   - **Invia email**: Disattivato (per evitare la saturazione della casella di posta).
-   - **Pianificazione**: Impostare il minuto su =*= (Ogni minuto) e lasciare gli altri campi su =*=.
+   - *Invia email*: Disattivato (per evitare la saturazione della casella di posta).
+   - *Pianificazione*: Impostare il minuto su =*= (Ogni minuto) e lasciare gli altri campi su =*=.
 4. Salvare e applicare le modifiche tramite la notifica di sistema in alto.
 
 ** 3. Distribuzione su GitHub Pages
-Il file =index.html= in questo repository gestisce autonomamente il recupero dello stato e la visualizzazione grafica.
+Il file =index.html= in gestisce autonomamente il recupero dello stato e la visualizzazione grafica:
+#+BEGIN_SRC html
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stato Server OMV</title>
+    <style>
+        body { 
+            font-family: sans-serif; 
+            text-align: center; 
+            padding-top: 100px; 
+            background-color: #f4f4f9;
+        }
+        .status-container {
+            display: inline-block;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .status-text { 
+            font-size: 2.5em; 
+            font-weight: bold;
+        }
+        .online { background-color: #d4edda; color: #155724; border: 2px solid #c3e6cb; }
+        .offline { background-color: #f8d7da; color: #721c24; border: 2px solid #f5c6cb; }
+        .loading { background-color: #e2e3e5; color: #383d41; border: 2px solid #d6d8db; }
+    </style>
+</head>
+<body>
 
-1. Caricare il file =index.html= nel ramo principale (=main= o =master=) di questo repository.
+    <div id="status-box" class="status-container loading">
+        <div id="status-text" class="status-text">Controllo in corso...</div>
+        <p id="status-subtext">Verifica connessione al server</p>
+    </div>
+
+    <script>
+        // INSERISCI QUI L'URL DEL BADGE JSON DI HEALTHCHECKS
+        const badgeJsonUrl = 'https://healthchecks.io/badge/TUO_ID_PROGETTO/TUO_ID_CHECK.json';
+
+        function checkServerStatus() {
+            fetch(badgeJsonUrl)
+                .then(response => response.json())
+                .then(data => {
+                    const box = document.getElementById('status-box');
+                    const text = document.getElementById('status-text');
+                    const subtext = document.getElementById('status-subtext');
+
+                    if (data.status === 'up') {
+                        box.className = 'status-container online';
+                        text.textContent = 'Server Online';
+                        subtext.textContent = 'Il push periodico è attivo e funzionante.';
+                    } else {
+                        // Se lo stato è 'down' o altro
+                        box.className = 'status-container offline';
+                        text.textContent = 'Server Offline';
+                        subtext.textContent = 'Nessun segnale ricevuto negli ultimi minuti.';
+                    }
+                })
+                .catch(error => {
+                    const box = document.getElementById('status-box');
+                    const text = document.getElementById('status-text');
+                    box.className = 'status-container offline';
+                    text.textContent = 'Errore di Rete';
+                    document.getElementById('status-subtext').textContent = 'Impossibile recuperare lo stato dal monitoraggio.';
+                });
+        }
+
+        // Esegue il controllo all'apertura della pagina
+        checkServerStatus();
+
+        // Aggiorna lo stato automaticamente ogni 60 secondi
+        setInterval(checkServerStatus, 60000);
+    </script>
+</body>
+</html>
+#+END_SRC
+
+1. Caricare il file =index.html= nel ramo principale (=main= o =master=) di questa repository.
 2. Modificare la variabile =badgeJsonUrl= all'interno dello script incorporato in =index.html= inserendo l'URL JSON ottenuto da Healthchecks.io.
 3. Accedere alle *Settings* del repository GitHub, navigare nella sezione *Pages* e abilitare il deployment dal ramo selezionato.
 
@@ -50,5 +127,5 @@ Il file =index.html= in questo repository gestisce autonomamente il recupero del
 - =README.org=: Questa documentazione tecnica.
 
 * Risoluzione dei Problemi
-- **Il server risulta offline ma è acceso**: Verificare i log di OMV per assicurarsi che il comando cURL venga eseguito senza errori di rete locali o problemi di risoluzione DNS.
-- **Latenza nell'aggiornamento della pagina**: Il client esegue un polling automatico del badge JSON ogni 60 secondi. È possibile forzare l'aggiornamento ricaricando la pagina del browser.
+- *Il server risulta offline ma è acceso*: Verificare i log di OMV per assicurarsi che il comando cURL venga eseguito senza errori di rete locali o problemi di risoluzione DNS.
+- *Latenza nell'aggiornamento della pagina*: Il client esegue un polling automatico del badge JSON ogni 60 secondi. È possibile forzare l'aggiornamento ricaricando la pagina del browser.
