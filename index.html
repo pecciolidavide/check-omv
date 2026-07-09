@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stato Server OMV</title>
+    <style>
+        body { 
+            font-family: sans-serif; 
+            text-align: center; 
+            padding-top: 100px; 
+            background-color: #f4f4f9;
+        }
+        .status-container {
+            display: inline-block;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .status-text { 
+            font-size: 2.5em; 
+            font-weight: bold;
+        }
+        .online { background-color: #d4edda; color: #155724; border: 2px solid #c3e6cb; }
+        .offline { background-color: #f8d7da; color: #721c24; border: 2px solid #f5c6cb; }
+        .loading { background-color: #e2e3e5; color: #383d41; border: 2px solid #d6d8db; }
+    </style>
+</head>
+<body>
+
+    <div id="status-box" class="status-container loading">
+        <div id="status-text" class="status-text">Controllo in corso...</div>
+        <p id="status-subtext">Verifica connessione al server</p>
+    </div>
+
+    <script>
+        // INSERISCI QUI L'URL DEL BADGE JSON DI HEALTHCHECKS
+        const badgeJsonUrl = 'https://healthchecks.io/b/2/71fe579f-609d-48e1-8b66-f2ed30a2e874.json';
+
+        function checkServerStatus() {
+            fetch(badgeJsonUrl)
+                .then(response => response.json())
+                .then(data => {
+                    const box = document.getElementById('status-box');
+                    const text = document.getElementById('status-text');
+                    const subtext = document.getElementById('status-subtext');
+
+                    if (data.status === 'up') {
+                        box.className = 'status-container online';
+                        text.textContent = 'Server Online';
+                        subtext.textContent = 'Il push periodico è attivo e funzionante.';
+                    } else {
+                        // Se lo stato è 'down' o altro
+                        box.className = 'status-container offline';
+                        text.textContent = 'Server Offline';
+                        subtext.textContent = 'Nessun segnale ricevuto negli ultimi minuti.';
+                    }
+                })
+                .catch(error => {
+                    const box = document.getElementById('status-box');
+                    const text = document.getElementById('status-text');
+                    box.className = 'status-container offline';
+                    text.textContent = 'Errore di Rete';
+                    document.getElementById('status-subtext').textContent = 'Impossibile recuperare lo stato dal monitoraggio.';
+                });
+        }
+
+        // Esegue il controllo all'apertura della pagina
+        checkServerStatus();
+
+        // Aggiorna lo stato automaticamente ogni 60 secondi
+        setInterval(checkServerStatus, 60000);
+    </script>
+</body>
+</html>
