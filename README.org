@@ -7,8 +7,8 @@ Questo repository ospita una soluzione leggera e statica per monitorare lo stato
 
 * Architettura del Sistema
 L'infrastruttura si compone di tre elementi principali:
-1. *OpenMediaVault (Server)**: Esegue un'attività pianificata ogni minuto che invia un segnale HTTP (ping via cURL) all'endpoint di controllo.
-2. *Healthchecks.io (Servizio di Monitoraggio)**: Riceve i ping dal server. Se non riceve aggiornamenti entro la tolleranza stabilita, contrassegna lo stato del server come "down" e aggiorna un badge JSON pubblico.
+1. *OpenMediaVault (Server)*: Esegue un'attività pianificata ogni minuto che invia un segnale HTTP (ping via cURL) all'endpoint di controllo.
+2. *Healthchecks.io (Servizio di Monitoraggio)*: Riceve i ping dal server. Se non riceve aggiornamenti entro la tolleranza stabilita, contrassegna lo stato del server come "down" e aggiorna un badge JSON pubblico.
 3. *GitHub Pages (Interfaccia Utente)**: Una pagina HTML statica che interroga asincronamente il badge JSON di Healthchecks.io tramite JavaScript (Fetch API) e aggiorna l'interfaccia utente in tempo reale senza ricaricare la pagina.
 
 * Configurazione del Sistema
@@ -35,7 +35,7 @@ Invece di utilizzare direttamente il crontab di sistema, si raccomanda l'uso del
      curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/tuo-uuid-segreto
      #+END_SRC
    - *Invia email*: Disattivato (per evitare la saturazione della casella di posta).
-   - *Pianificazione*: Impostare il minuto su =*= (Ogni minuto) e lasciare gli altri campi su =*=.
+   - *Pianificazione*: Impostare il minuto su =1= (Ogni minuto) e lasciare gli altri campi su =*=.
 4. Salvare e applicare le modifiche tramite la notifica di sistema in alto.
 
 ** 3. Distribuzione su GitHub Pages
